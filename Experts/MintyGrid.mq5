@@ -40,7 +40,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, Christopher Benjamin Hemmens"
 #property link      "chrishemmens@hotmail.com"
-#property version   "4.2"
+#property version   "4.3"
 
 #include <checkhistory.mqh>
 #include <Trade/Trade.mqh>
@@ -59,7 +59,7 @@ input double   stopLoss                   = 0.00;     // Percentage of price to 
 input group    "Profit settings";
 input RiskType profitType                 = Dynamic;  // Whether to use fixed or dynamic profit
 input RiskBase profitBase                 = Equity;   // Factor to base profit on when using dynamic profit
-input double   profitFactor               = 10.0;     // Fixed profit in deposit currency or dynamic profit factor
+input double   profitFactor               = 5.00;     // Fixed profit in deposit currency or dynamic profit factor
 input double   profitManyPairsDeviser     = 0.00;     // Factor to divide total profit by for all symbol profit
 
 input group    "Martingale grid settings";
@@ -131,6 +131,7 @@ double   symbolHighestBuyLots    [];
 double   symbolHighestSellPrice  [];
 double   symbolHighestSellLots   [];
 double   symbolProfit            [];
+double   symbolSwap              [];
 double   symbolBuyProfit         [];
 double   symbolSellProfit        [];
 double   symbolTargetProfit      [];
@@ -219,31 +220,31 @@ void initTable()
    title.Create(0,"titlebackground00",0,width-82,padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.2");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
    title.Create(0,"titlebackground0",0,width-84,padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.2");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
    title.Create(0,"titlebackground1",0,width-82,padding-1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.2");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
    title.Create(0,"titlebackground2",0,width-84,padding);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.2");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
    title.Create(0,"titlebackground3",0,width-82,padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.2");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
    title.Create(0,"titlebackground4",0,width-84,padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.2");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
    title.Create(0,"title",0,width-83,padding);
    title.FontSize(9);
    title.Color(clrHoneydew);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.2");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
 
 
    CreateTableCell(-1,  0,                " Profit ");
@@ -614,7 +615,7 @@ void FilterPositions(int sIndex)
       if(position.Magic() == magicNumber)
         {
          allSymbolTotalPositions++;
-         allSymbolTotalLots += position.Volume();
+         allSymbolTotalLots   += position.Volume();
          allSymbolTotalProfit += position.Profit();
 
          if(position.Symbol() == symbols[sIndex])
@@ -669,17 +670,17 @@ void CalculateRisk(int sIndex)
      {
       if(riskBase == Balance)
         {
-         symbolInitialLots [sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/balance)*symbolLotStep[sIndex]*riskFactor/totalSymbols,   sIndex);
+         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/leverage*balance)*symbolLotStep[sIndex]*riskFactor,   sIndex);
         }
 
       if(riskBase == Equity)
         {
-         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/equity)*symbolLotStep[sIndex]*riskFactor/totalSymbols,      sIndex);
+         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/leverage*equity)*symbolLotStep[sIndex]*riskFactor,      sIndex);
         }
 
       if(riskBase == Margin)
         {
-         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/freeMargin)*symbolLotStep[sIndex]*riskFactor/totalSymbols,  sIndex);
+         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/leverage*freeMargin)*symbolLotStep[sIndex]*riskFactor,  sIndex);
         }
      }
 
@@ -722,7 +723,7 @@ void CalculateProfit(int sIndex)
      }
 
    symbolTargetSellProfit[sIndex] = symbolSellPositions[sIndex]   == 0 ? 0 : (symbolTargetProfit[sIndex]*(symbolSellVolume[sIndex]  /symbolInitialLots[sIndex]))+((symbolTargetProfit[sIndex]*(symbolSellVolume[sIndex] /symbolInitialLots[sIndex]))*(symbolTotalPositions[sIndex]*gridStepProfitMultiplier));
-   symbolTargetBuyProfit[sIndex] = symbolBuyPositions[sIndex]     == 0 ? 0 : (symbolTargetProfit[sIndex]*(symbolBuyVolume[sIndex]   /symbolInitialLots[sIndex]))+((symbolTargetProfit[sIndex]*(symbolBuyVolume[sIndex]  /symbolInitialLots[sIndex]))*(symbolTotalPositions[sIndex]*gridStepProfitMultiplier));
+   symbolTargetBuyProfit[sIndex]  = symbolBuyPositions[sIndex]    == 0 ? 0 : (symbolTargetProfit[sIndex]*(symbolBuyVolume[sIndex]   /symbolInitialLots[sIndex]))+((symbolTargetProfit[sIndex]*(symbolBuyVolume[sIndex]  /symbolInitialLots[sIndex]))*(symbolTotalPositions[sIndex]*gridStepProfitMultiplier));
 
    if(symbolBuyPositions[sIndex] >= gridStepBreakEven && gridStepBreakEven > 0)
      {
