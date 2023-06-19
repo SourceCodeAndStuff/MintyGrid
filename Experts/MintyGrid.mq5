@@ -59,7 +59,7 @@ input double   stopLoss                   = 0.00;     // Percentage of price to 
 input group    "Profit settings";
 input RiskType profitType                 = Dynamic;  // Whether to use fixed or dynamic profit
 input RiskBase profitBase                 = Equity;   // Factor to base profit on when using dynamic profit
-input double   profitFactor               = 5.00;     // Fixed profit in deposit currency or dynamic profit factor
+input double   profitFactor               = 10.0;     // Fixed profit in deposit currency or dynamic profit factor
 input double   profitManyPairsDeviser     = 0.00;     // Factor to divide total profit by for all symbol profit
 
 input group    "Martingale grid settings";
