@@ -602,6 +602,7 @@ void UpdateBalance()
    freeMargin     = AccountInfoDouble(ACCOUNT_MARGIN_FREE);
   }
 
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -670,17 +671,17 @@ void CalculateRisk(int sIndex)
      {
       if(riskBase == Balance)
         {
-         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/leverage*balance)*symbolLotStep[sIndex]*riskFactor,   sIndex);
+         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/10000*balance)*symbolLotStep[sIndex]*riskFactor,   sIndex);
         }
 
       if(riskBase == Equity)
         {
-         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/leverage*equity)*symbolLotStep[sIndex]*riskFactor,      sIndex);
+         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/10000*equity)*symbolLotStep[sIndex]*riskFactor,      sIndex);
         }
 
       if(riskBase == Margin)
         {
-         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/leverage*freeMargin)*symbolLotStep[sIndex]*riskFactor,  sIndex);
+         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/10000*freeMargin)*symbolLotStep[sIndex]*riskFactor,  sIndex);
         }
      }
 
@@ -1129,7 +1130,7 @@ int OnInit()
      }
    else
      {
-      EventSetMillisecondTimer(333);
+      EventSetTimer(1);
      }
 
    if(showComment)
