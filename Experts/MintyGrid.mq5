@@ -40,7 +40,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, Christopher Benjamin Hemmens"
 #property link      "chrishemmens@hotmail.com"
-#property version   "4.4"
+#property version   "5.0"
 
 #include <checkhistory.mqh>
 #include <Trade/Trade.mqh>
@@ -59,18 +59,26 @@ input double   stopLoss                   = 0.00;     // Percentage of price to 
 input group    "Profit settings";
 input RiskType profitType                 = Dynamic;  // Whether to use fixed or dynamic profit
 input RiskBase profitBase                 = Equity;   // Factor to base profit on when using dynamic profit
-input double   profitFactor               = 10.0;     // Fixed profit in deposit currency or dynamic profit factor
+input double   profitFactor               = 0.25;     // Fixed profit in deposit currency or dynamic profit factor
 input double   profitManyPairsDeviser     = 0.00;     // Factor to divide total profit by for all symbol profit
 
 input group    "Martingale grid settings";
 input int      gridStepMax                = 10;       // Maximum amount of grid steps per direction
-input int      gridStepBreakEven          = 3;        // Try break even on grid step (0 to disable)
-input double   gridStepMovement           = 0.03;     // Step price movement percentage
-input double   gridStepMultiplier         = 3.00;     // Step price movement multiplier (0 to disable)
-input double   gridReverseStepMultiplier  = 1.00;     // Reverse price movement multiplier (0 to disable)
-input double   gridStepProfitMultiplier   = 0.30;     // Step profit multiplier (0 to disable)
+input int      gridStepBreakEven          = 7;        // Try break even on grid step (0 to disable)
+input double   gridStepMovement           = 0.02;     // Step price movement percentage
+input double   gridStepMultiplier         = 2.00;     // Step price movement multiplier (0 to disable)
+input double   gridReverseStepMultiplier  = 2.00;     // Reverse price movement multiplier (0 to disable)
+input double   gridStepProfitMultiplier   = 0.00;     // Step profit multiplier (0 to disable)
 input double   gridStepLotMultiplier      = 2.00;     // Step martingale lot multiplier (0 to disable)
 input double   gridReverseLotDeviser      = 0.00;     // Reverse martingale lot deviser (0 to disable)
+
+input group    "RSI Inidicator settings";
+input bool      rsiEnabeled                = true;    // Whether to enable RSI indicator
+input ENUM_TIMEFRAMES rsiPeriod            = PERIOD_CURRENT; // RSI indicator period
+input int       rsiAveragingPeriod         = 14;       // RSI averaging period
+input double    rsiUpperThreshold          = 70;      // RSI upper threshold
+input double    rsiLowerThreshold          = 30;        // RSI lower threshold
+input ENUM_APPLIED_PRICE rsiAppliedPrice   = PRICE_TYPICAL; // RSI averaging period
 
 input group    "Trade settings";
 input bool     buy                        = true;     // Whether to enable buy trades
@@ -93,8 +101,8 @@ CChartObjectLabel*      tableCells[];
 
 string   EMPTY_STRING            = " ------ ";
 
-int      rowHeight               = 24;
-int      width                   = 800;
+int      rowHeight               = 48;
+int      width                   = 2200;
 int      padding                 = 5;
 int      colSize                 = 72;
 int      col[72];
@@ -155,6 +163,8 @@ MqlTick  symbolCurrentTick       [];
 MqlTick  symbolLastTick          [];
 ulong    positionsToClose        [];
 
+int      rsiHandle               [];
+double   rsiBuffer               [];
 
 //+------------------------------------------------------------------+
 //|                                                                  |
@@ -201,6 +211,7 @@ void initSymbols()
    ArrayResize(symbolLotPrecision, totalSymbols);
    ArrayResize(symbolCurrentTick, totalSymbols);
    ArrayResize(symbolLastTick, totalSymbols);
+   ArrayResize(rsiHandle, totalSymbols);
   }
 
 //+------------------------------------------------------------------+
@@ -217,34 +228,10 @@ void initTable()
    CreateTableRow(0, clrForestGreen, 2);
    CreateTableRow(totalSymbols+2, clrForestGreen);
 
-   title.Create(0,"titlebackground00",0,width-82,padding+1);
+   title.Create(0,"titlebackground00",0,width-(colSize*25),padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
-   title.Create(0,"titlebackground0",0,width-84,padding+1);
-   title.FontSize(9);
-   title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
-   title.Create(0,"titlebackground1",0,width-82,padding-1);
-   title.FontSize(9);
-   title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
-   title.Create(0,"titlebackground2",0,width-84,padding);
-   title.FontSize(9);
-   title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
-   title.Create(0,"titlebackground3",0,width-82,padding+1);
-   title.FontSize(9);
-   title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
-   title.Create(0,"titlebackground4",0,width-84,padding+1);
-   title.FontSize(9);
-   title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
-   title.Create(0,"title",0,width-83,padding);
-   title.FontSize(9);
-   title.Color(clrHoneydew);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v5.0");
 
 
    CreateTableCell(-1,  0,                " Profit ");
@@ -617,19 +604,24 @@ void FilterPositions(int sIndex)
         {
          allSymbolTotalPositions++;
          allSymbolTotalLots   += position.Volume();
-         allSymbolTotalProfit += position.Profit();
+
+         double positionProfit = position.Profit() + position.Commission() + position.Swap();
+         
+         Print(positionProfit);
+         
+         allSymbolTotalProfit += positionProfit;
 
          if(position.Symbol() == symbols[sIndex])
            {
             symbolTotalPositions[sIndex]++;
-            symbolProfit[sIndex] += (position.Profit() + position.Swap());
+            symbolProfit[sIndex] += positionProfit;
             symbolTotalVolume[sIndex] += position.Volume();
 
             if(position.PositionType() == POSITION_TYPE_BUY)
               {
                symbolBuyPositions[sIndex]++;
                symbolBuyVolume[sIndex] += position.Volume();
-               symbolBuyProfit[sIndex] += (position.Profit() + position.Swap());
+               symbolBuyProfit[sIndex] += positionProfit;
 
                if(symbolLowestBuyPrice[sIndex] == 0 || position.PriceOpen() < symbolLowestBuyPrice[sIndex])
                  {
@@ -645,7 +637,7 @@ void FilterPositions(int sIndex)
               {
                symbolSellPositions[sIndex]++;
                symbolSellVolume[sIndex] += position.Volume();
-               symbolBuyProfit[sIndex] += (position.Profit() + position.Swap());
+               symbolBuyProfit[sIndex] += positionProfit;
 
                if(symbolHighestSellPrice[sIndex] == 0 || position.PriceOpen() > symbolHighestSellPrice[sIndex])
                  {
@@ -671,17 +663,17 @@ void CalculateRisk(int sIndex)
      {
       if(riskBase == Balance)
         {
-         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/10000*balance)*symbolLotStep[sIndex]*riskFactor,   sIndex);
+         symbolInitialLots[sIndex] = NormalizeVolume(balance/100*riskFactor/(100000*(1/leverage))*symbolLotStep[sIndex],   sIndex);
         }
 
       if(riskBase == Equity)
         {
-         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/10000*equity)*symbolLotStep[sIndex]*riskFactor,      sIndex);
+         symbolInitialLots[sIndex] = NormalizeVolume(equity/100*riskFactor/(100000*(1/leverage))*symbolLotStep[sIndex],      sIndex);
         }
 
       if(riskBase == Margin)
         {
-         symbolInitialLots[sIndex] = NormalizeVolume((symbolMinMargin[sIndex]/10000*freeMargin)*symbolLotStep[sIndex]*riskFactor,  sIndex);
+         symbolInitialLots[sIndex] = NormalizeVolume(freeMargin/100*riskFactor/(100000*(1/leverage))*symbolLotStep[sIndex],  sIndex);
         }
      }
 
@@ -704,17 +696,17 @@ void CalculateProfit(int sIndex)
      {
       if(profitBase == Balance)
         {
-         symbolTargetProfit[sIndex] = (leverage*(symbolMinMargin[sIndex]*symbolInitialLots[sIndex]/symbolLotMin[sIndex])/balance)*profitFactor;
+         symbolTargetProfit[sIndex] = balance/100*profitFactor;
         }
 
       if(profitBase == Equity)
         {
-         symbolTargetProfit[sIndex] = (leverage*(symbolMinMargin[sIndex]*symbolInitialLots[sIndex]/symbolLotMin[sIndex])/equity)*profitFactor;
+         symbolTargetProfit[sIndex] = equity/100*profitFactor;
         }
 
       if(profitBase == Margin)
         {
-         symbolTargetProfit[sIndex] = (leverage*(symbolMinMargin[sIndex]*symbolInitialLots[sIndex]/symbolLotMin[sIndex])/freeMargin)*profitFactor;
+         symbolTargetProfit[sIndex] = freeMargin/100*profitFactor;
         }
      }
 
@@ -723,8 +715,8 @@ void CalculateProfit(int sIndex)
       symbolTargetProfit[sIndex] = profitFactor;
      }
 
-   symbolTargetSellProfit[sIndex] = symbolSellPositions[sIndex]   == 0 ? 0 : (symbolTargetProfit[sIndex]*(symbolSellVolume[sIndex]  /symbolInitialLots[sIndex]))+((symbolTargetProfit[sIndex]*(symbolSellVolume[sIndex] /symbolInitialLots[sIndex]))*(symbolTotalPositions[sIndex]*gridStepProfitMultiplier));
-   symbolTargetBuyProfit[sIndex]  = symbolBuyPositions[sIndex]    == 0 ? 0 : (symbolTargetProfit[sIndex]*(symbolBuyVolume[sIndex]   /symbolInitialLots[sIndex]))+((symbolTargetProfit[sIndex]*(symbolBuyVolume[sIndex]  /symbolInitialLots[sIndex]))*(symbolTotalPositions[sIndex]*gridStepProfitMultiplier));
+   symbolTargetSellProfit[sIndex] = symbolSellPositions[sIndex]   == 0 ? 0 : symbolTargetProfit[sIndex]+(symbolTargetProfit[sIndex]*(symbolSellPositions[sIndex]*gridStepProfitMultiplier));
+   symbolTargetBuyProfit[sIndex]  = symbolBuyPositions[sIndex]    == 0 ? 0 : symbolTargetProfit[sIndex]+(symbolTargetProfit[sIndex]*(symbolBuyPositions[sIndex]*gridStepProfitMultiplier));
 
    if(symbolBuyPositions[sIndex] >= gridStepBreakEven && gridStepBreakEven > 0)
      {
@@ -738,12 +730,74 @@ void CalculateProfit(int sIndex)
 
    symbolTargetTotalProfit[sIndex] = symbolTargetSellProfit[sIndex] + symbolTargetBuyProfit[sIndex];
 
-   allSymbolTargetProfit = totalSymbols == 0 ? 0 : (symbolTargetProfit[sIndex]*allSymbolTotalLots/symbolLotMin[sIndex]/(profitManyPairsDeviser == 0 ? 1 : profitManyPairsDeviser));
-
+   allSymbolTargetProfit += symbolTargetTotalProfit[sIndex];
+   
+   
    symbolTargetSellProfit[sIndex]   = symbolTargetSellProfit[sIndex]    < 0 ? 0 : symbolTargetSellProfit[sIndex];
    symbolTargetBuyProfit[sIndex]    = symbolTargetBuyProfit[sIndex]     < 0 ? 0 : symbolTargetBuyProfit[sIndex];
    symbolTargetTotalProfit[sIndex]  = symbolTargetTotalProfit[sIndex]   < 0 ? 0 : symbolTargetTotalProfit[sIndex];
    allSymbolTargetProfit            = allSymbolTargetProfit             < 0 ? 0 : allSymbolTargetProfit;
+  }
+
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+void InitIndicators()
+  {
+   for(int sIndex = 0; sIndex < totalSymbols; sIndex++)
+     {
+      rsiHandle[sIndex]=iRSI(symbols[sIndex],rsiPeriod,rsiAveragingPeriod,rsiAppliedPrice);
+
+      if(rsiHandle[sIndex]==INVALID_HANDLE)
+        {
+         //--- tell about the failure and output the error code
+         PrintFormat("Failed to create handle of the iRSI indicator for the symbol %s/%s, error code %d",
+                     symbols[sIndex],
+                     EnumToString(rsiPeriod),
+                     GetLastError());
+        }
+
+      //--- show the symbol/timeframe the Relative Strength Index indicator is calculated for
+      string indicatorShortName = StringFormat("iRSI(%s/%s, %d, %d)",symbols[sIndex],EnumToString(rsiPeriod),rsiAveragingPeriod,rsiAppliedPrice);
+      IndicatorSetString(INDICATOR_SHORTNAME,indicatorShortName);
+
+     }
+  }
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool HandleIndicator(int sIndex, ENUM_ORDER_TYPE direction)
+  {
+
+   ArraySetAsSeries(rsiBuffer,true);
+   ArrayRemove(rsiBuffer,0,WHOLE_ARRAY);
+//--- variable for storing the results of working with the indicator buffer
+   int err1=0;
+//--- copy data from the indicator array to the iRSI_buf dynamic array for further work with them
+   err1=CopyBuffer(rsiHandle[sIndex],0,1,10,rsiBuffer);
+//--- in case of errors, print the relevant error message into the log file and exit the function
+   if(err1<0)
+     {
+      Print("Failed to copy data from the indicator buffer");
+      return false;
+     }
+
+
+   double min=rsiBuffer[ArrayMinimum(rsiBuffer)];
+   double max=rsiBuffer[ArrayMaximum(rsiBuffer)];
+
+   Print(min);
+
+   if(direction == ORDER_TYPE_SELL && rsiUpperThreshold >= max)
+     {
+      return true;
+     }
+
+   if(direction == ORDER_TYPE_BUY && rsiLowerThreshold <= min)
+     {
+      return true;
+     }
+   return false;
   }
 
 //+------------------------------------------------------------------+
@@ -830,7 +884,11 @@ void TradeSymbol(int sIndex)
       double volume = IsNetting() ? symbolLotMin[sIndex] : highestLot < symbolInitialLots[sIndex] ? symbolInitialLots[sIndex] : highestLot;
       double sl = stopLoss > 0 ? symbolAsk[sIndex]-(symbolAsk[sIndex]/100*stopLoss) : 0;
 
-      Buy(sIndex,volume,sl);
+      if((HandleIndicator(sIndex, ORDER_TYPE_BUY) && rsiEnabeled)
+         || !rsiEnabeled)
+        {
+         Buy(sIndex,volume,sl);
+        }
      }
 
    if((symbolSellPositions[sIndex] == 0) && (symbolBuyPositions[sIndex] == 0 || (symbolBid[sIndex] > symbolLowestBuyPrice[sIndex]+(((symbolAsk[sIndex]-symbolBid[sIndex])/100*gridStepMovement)*((gridStepMultiplier*gridReverseStepMultiplier))) && buy)) && sell)
@@ -839,7 +897,11 @@ void TradeSymbol(int sIndex)
       double volume = IsNetting() ? symbolLotMin[sIndex] : highestLot < symbolInitialLots[sIndex] ? symbolInitialLots[sIndex] : highestLot;
       double sl = stopLoss > 0 ? symbolBid[sIndex]+(symbolBid[sIndex]/100*stopLoss) : 0;
 
-      Sell(sIndex,volume,sl);
+      if((HandleIndicator(sIndex, ORDER_TYPE_SELL) && rsiEnabeled)
+         || !rsiEnabeled)
+        {
+         Sell(sIndex,volume,sl);
+        }
      }
   }
 
@@ -1133,6 +1195,9 @@ int OnInit()
       EventSetTimer(1);
      }
 
+   InitIndicators();
+
+
    if(showComment)
      {
       initTable();
@@ -1173,6 +1238,40 @@ void OnDeinit(const int reason)
   {
    deleteTable();
    EventKillTimer();
+
+   for(int i = 0; i < totalSymbols; i++)
+     {
+      IndicatorRelease(rsiHandle[i]);
+     }
+   ArrayFree(symbolInitialLots);
+   ArrayFree(symbolLowestBuyPrice);
+   ArrayFree(symbolHighestBuyLots);
+   ArrayFree(symbolHighestSellPrice);
+   ArrayFree(symbolHighestSellLots);
+   ArrayFree(symbolProfit);
+   ArrayFree(symbolTargetProfit);
+   ArrayFree(symbolBuyProfit);
+   ArrayFree(symbolSellProfit);
+   ArrayFree(symbolTargetBuyProfit);
+   ArrayFree(symbolTargetSellProfit);
+   ArrayFree(symbolTargetTotalProfit);
+   ArrayFree(symbolBuyVolume);
+   ArrayFree(symbolSellVolume);
+   ArrayFree(symbolTotalVolume);
+   ArrayFree(symbolBuyPositions);
+   ArrayFree(symbolSellPositions);
+   ArrayFree(symbolTotalPositions);
+   ArrayFree(symbolAsk);
+   ArrayFree(symbolBid);
+   ArrayFree(symbolLotMin);
+   ArrayFree(symbolLotMax);
+   ArrayFree(symbolLotStep);
+   ArrayFree(symbolMinMargin);
+   ArrayFree(symbolLotPrecision);
+   ArrayFree(symbolCurrentTick);
+   ArrayFree(symbolLastTick);
+   ArrayFree(rsiHandle);
+   ArrayFree(rsiBuffer);
   }
 
 
