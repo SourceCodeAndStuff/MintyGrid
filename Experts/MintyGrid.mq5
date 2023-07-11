@@ -40,7 +40,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, Christopher Benjamin Hemmens"
 #property link      "chrishemmens@hotmail.com"
-#property version   "4.3"
+#property version   "4.4"
 
 #include <checkhistory.mqh>
 #include <Trade/Trade.mqh>
@@ -220,31 +220,31 @@ void initTable()
    title.Create(0,"titlebackground00",0,width-82,padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
    title.Create(0,"titlebackground0",0,width-84,padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
    title.Create(0,"titlebackground1",0,width-82,padding-1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
    title.Create(0,"titlebackground2",0,width-84,padding);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
    title.Create(0,"titlebackground3",0,width-82,padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
    title.Create(0,"titlebackground4",0,width-84,padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
    title.Create(0,"title",0,width-83,padding);
    title.FontSize(9);
    title.Color(clrHoneydew);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v4.3");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v4.4");
 
 
    CreateTableCell(-1,  0,                " Profit ");
@@ -622,14 +622,14 @@ void FilterPositions(int sIndex)
          if(position.Symbol() == symbols[sIndex])
            {
             symbolTotalPositions[sIndex]++;
-            symbolProfit[sIndex] += position.Profit();
+            symbolProfit[sIndex] += (position.Profit() + position.Swap());
             symbolTotalVolume[sIndex] += position.Volume();
 
             if(position.PositionType() == POSITION_TYPE_BUY)
               {
                symbolBuyPositions[sIndex]++;
                symbolBuyVolume[sIndex] += position.Volume();
-               symbolBuyProfit[sIndex] += position.Profit();
+               symbolBuyProfit[sIndex] += (position.Profit() + position.Swap());
 
                if(symbolLowestBuyPrice[sIndex] == 0 || position.PriceOpen() < symbolLowestBuyPrice[sIndex])
                  {
@@ -645,7 +645,7 @@ void FilterPositions(int sIndex)
               {
                symbolSellPositions[sIndex]++;
                symbolSellVolume[sIndex] += position.Volume();
-               symbolSellProfit[sIndex] += position.Profit();
+               symbolBuyProfit[sIndex] += (position.Profit() + position.Swap());
 
                if(symbolHighestSellPrice[sIndex] == 0 || position.PriceOpen() > symbolHighestSellPrice[sIndex])
                  {
