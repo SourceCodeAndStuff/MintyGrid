@@ -873,7 +873,7 @@ void TradeSymbol(int sIndex)
       Sell(sIndex,volume,sl);
      }
 
-   if((symbolBuyPositions[sIndex] == 0) && (symbolSellPositions[sIndex] == 0 || (symbolAsk[sIndex] < symbolHighestSellPrice[sIndex]-(((symbolAsk[sIndex]-symbolBid[sIndex])*gridReverseMovement)) && sell)) && buy)
+   if((symbolBuyPositions[sIndex] == 0) && (symbolSellPositions[sIndex] == 0 || (symbolAsk[sIndex] < symbolHighestSellPrice[sIndex]-(((symbolAsk[sIndex]-symbolBid[sIndex])*gridReverseMovement)) && sell)) && buy && !IsNetting())
      {
       double highestLot = symbolSellPositions[sIndex] == 0 ? 0 : gridReverseLotDeviser > 0 ? symbolSellVolume[sIndex]/(symbolSellPositions[sIndex]+1)/gridReverseLotDeviser : 0;
       double volume = IsNetting() ? symbolLotMin[sIndex] : highestLot < symbolInitialLots[sIndex] ? symbolInitialLots[sIndex] : highestLot;
@@ -886,7 +886,7 @@ void TradeSymbol(int sIndex)
         }
      }
 
-   if((symbolSellPositions[sIndex] == 0) && (symbolBuyPositions[sIndex] == 0 || (symbolBid[sIndex] > symbolLowestBuyPrice[sIndex]+(((symbolAsk[sIndex]-symbolBid[sIndex])*gridReverseMovement)) && buy)) && sell)
+   if((symbolSellPositions[sIndex] == 0) && (symbolBuyPositions[sIndex] == 0 || (symbolBid[sIndex] > symbolLowestBuyPrice[sIndex]+(((symbolAsk[sIndex]-symbolBid[sIndex])*gridReverseMovement)) && buy)) && sell && !IsNetting())
      {
       double highestLot = symbolBuyPositions[sIndex] == 0 ? 0 : gridReverseLotDeviser > 0 ? symbolBuyVolume[sIndex]/(symbolBuyPositions[sIndex]+1)/gridReverseLotDeviser : 0;
       double volume = IsNetting() ? symbolLotMin[sIndex] : highestLot < symbolInitialLots[sIndex] ? symbolInitialLots[sIndex] : highestLot;
@@ -1154,6 +1154,9 @@ bool IsMarketOpen()
       return(true);
    return(false);
   }
+  
+bool nettingOrderPlaced = false;
+  
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -1162,6 +1165,11 @@ void Mint()
    UpdateBalance();
    HandleSymbols();
    CloseOpenPositions();
+   
+   if(IsNetting() && nettingOrderPlaced == false) {
+      Buy(0,symbolLotMin[0],symbolAsk[0]-(symbolAsk[0]/100*1));
+      nettingOrderPlaced = true;
+   }
   }
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
