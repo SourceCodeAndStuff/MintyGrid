@@ -40,7 +40,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, Christopher Benjamin Hemmens"
 #property link      "chrishemmens@hotmail.com"
-#property version   "5.0"
+#property version   "5.1"
 
 #include <checkhistory.mqh>
 #include <Trade/Trade.mqh>
@@ -52,22 +52,22 @@ enum RiskType   {Fixed, Dynamic};
 
 input group    "Risk settings";
 input RiskType riskType                   = Dynamic;  // Whether to use fixed or dynamic risk
-input RiskBase riskBase                   = Equity;   // Factor to base risk on when using dynamic risk
-input double   riskFactor                 = 1.00;     // Fixed lot size or dynamic risk factor
+input RiskBase riskBase                   = Balance;   // Factor to base risk on when using dynamic risk
+input double   riskFactor                 = 1.0;     // Fixed lot size or dynamic risk factor
 input double   stopLoss                   = 0.00;     // Percentage of price to be used as stop loss (0 to disable)
 
 input group    "Profit settings";
 input RiskType profitType                 = Dynamic;  // Whether to use fixed or dynamic profit
-input RiskBase profitBase                 = Equity;   // Factor to base profit on when using dynamic profit
-input double   profitFactor               = 0.25;     // Fixed profit in deposit currency or dynamic profit factor
+input RiskBase profitBase                 = Balance;   // Factor to base profit on when using dynamic profit
+input double   profitFactor               = 0.1;     // Fixed profit in deposit currency or dynamic profit factor
 input double   profitManyPairsDeviser     = 0.00;     // Factor to divide total profit by for all symbol profit
 
 input group    "Martingale grid settings";
 input int      gridStepMax                = 10;       // Maximum amount of grid steps per direction
-input int      gridStepBreakEven          = 7;        // Try break even on grid step (0 to disable)
+input int      gridStepBreakEven          = 5;        // Try break even on grid step (0 to disable)
 input double   gridStepMovement           = 0.03;     // Step price movement percentage
 input double   gridStepMultiplier         = 3.00;     // Step price movement multiplier (0 to disable)
-input double   gridReverseStepMultiplier  = 2.00;     // Reverse price movement multiplier (0 to disable)
+input double   gridReverseMovement        = 2.00;     // Reverse price movement multiplier (0 to disable)
 input double   gridStepProfitMultiplier   = 0.00;     // Step profit multiplier (0 to disable)
 input double   gridStepLotMultiplier      = 2.00;     // Step martingale lot multiplier (0 to disable)
 input double   gridReverseLotDeviser      = 0.00;     // Reverse martingale lot deviser (0 to disable)
@@ -78,7 +78,7 @@ input ENUM_TIMEFRAMES rsiPeriod            = PERIOD_CURRENT; // RSI indicator pe
 input int       rsiAveragingPeriod         = 14;       // RSI averaging period
 input double    rsiUpperThreshold          = 70;      // RSI upper threshold
 input double    rsiLowerThreshold          = 30;        // RSI lower threshold
-input ENUM_APPLIED_PRICE rsiAppliedPrice   = PRICE_TYPICAL; // RSI averaging period
+input ENUM_APPLIED_PRICE rsiAppliedPrice   = PRICE_TYPICAL; // RSI applied pricec
 
 input group    "Trade settings";
 input bool     buy                        = true;     // Whether to enable buy trades
@@ -228,10 +228,10 @@ void initTable()
    CreateTableRow(0, clrForestGreen, 2);
    CreateTableRow(totalSymbols+2, clrForestGreen);
 
-   title.Create(0,"titlebackground00",0,width-(colSize*2),padding+1);
+   title.Create(0,"titlebackground00",0,width-(colSize*3),padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v5.0");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v5.1");
 
 
    CreateTableCell(-1,  0,                " Profit ");
@@ -781,15 +781,14 @@ bool HandleIndicator(int sIndex, ENUM_ORDER_TYPE direction)
      }
 
 
-   double min=rsiBuffer[ArrayMinimum(rsiBuffer)];
-   double max=rsiBuffer[ArrayMaximum(rsiBuffer)];
+   double threshold=(rsiBuffer[ArrayMinimum(rsiBuffer)]+rsiBuffer[ArrayMaximum(rsiBuffer)])/2;
 
-   if(direction == ORDER_TYPE_SELL && rsiUpperThreshold >= max)
+   if(direction == ORDER_TYPE_SELL && rsiUpperThreshold >= threshold)
      {
       return true;
      }
 
-   if(direction == ORDER_TYPE_BUY && rsiLowerThreshold <= min)
+   if(direction == ORDER_TYPE_BUY && rsiLowerThreshold <= threshold)
      {
       return true;
      }
@@ -858,7 +857,7 @@ void TakeProfit(int sIndex)
 //+------------------------------------------------------------------+
 void TradeSymbol(int sIndex)
   {
-   if(symbolLowestBuyPrice[sIndex]-(((symbolAsk[sIndex]-symbolBid[sIndex])*100*gridStepMovement)*((symbolBuyPositions[sIndex]*gridStepMultiplier)+1)) >= symbolAsk[sIndex] && symbolBuyVolume[sIndex] != 0 && symbolBuyPositions[sIndex] < gridStepMax && !IsNetting())
+   if(symbolLowestBuyPrice[sIndex]-((symbolLowestBuyPrice[sIndex]/100*gridStepMovement)*((symbolBuyPositions[sIndex]*gridStepMultiplier)+1)) >= symbolAsk[sIndex] && symbolBuyVolume[sIndex] != 0 && symbolBuyPositions[sIndex] < gridStepMax && !IsNetting())
      {
       double volume = gridStepLotMultiplier == 0 ? symbolInitialLots[sIndex] : symbolBuyPositions[sIndex]*symbolInitialLots[sIndex]*gridStepLotMultiplier > symbolHighestBuyLots[sIndex]*gridStepLotMultiplier ? symbolBuyPositions[sIndex]*symbolInitialLots[sIndex]*gridStepLotMultiplier : symbolHighestBuyLots[sIndex]*gridStepLotMultiplier;
       double sl = stopLoss > 0 ? symbolAsk[sIndex]-(symbolAsk[sIndex]/100*stopLoss) : 0;
@@ -866,7 +865,7 @@ void TradeSymbol(int sIndex)
       Buy(sIndex,volume,sl);
      }
 
-   if(symbolHighestSellPrice[sIndex]+(((symbolAsk[sIndex]-symbolBid[sIndex])*100*gridStepMovement)*((symbolSellPositions[sIndex]*gridStepMultiplier)+1)) <= symbolBid[sIndex] && symbolSellVolume[sIndex] != 0 && symbolSellPositions[sIndex] < gridStepMax && !IsNetting())
+   if(symbolHighestSellPrice[sIndex]+((symbolHighestSellPrice[sIndex]/100*gridStepMovement)*((symbolSellPositions[sIndex]*gridStepMultiplier)+1)) <= symbolBid[sIndex] && symbolSellVolume[sIndex] != 0 && symbolSellPositions[sIndex] < gridStepMax && !IsNetting())
      {
       double volume = gridStepLotMultiplier == 0 ? symbolInitialLots[sIndex] : symbolSellPositions[sIndex]*symbolInitialLots[sIndex]*gridStepLotMultiplier > symbolHighestSellLots[sIndex]*gridStepLotMultiplier ? symbolSellPositions[sIndex]*symbolInitialLots[sIndex]*gridStepLotMultiplier : symbolHighestSellLots[sIndex]*gridStepLotMultiplier;
       double sl = stopLoss > 0 ? symbolBid[sIndex]+(symbolBid[sIndex]/100*stopLoss) : 0;
@@ -874,27 +873,27 @@ void TradeSymbol(int sIndex)
       Sell(sIndex,volume,sl);
      }
 
-   if((symbolBuyPositions[sIndex] == 0) && (symbolSellPositions[sIndex] == 0 || (symbolAsk[sIndex] < symbolHighestSellPrice[sIndex]-(((symbolAsk[sIndex]-symbolBid[sIndex])/100*gridStepMovement)*((gridStepMultiplier*gridReverseStepMultiplier))) && sell)) && buy && !IsNetting())
+   if((symbolBuyPositions[sIndex] == 0) && (symbolSellPositions[sIndex] == 0 || (symbolAsk[sIndex] < symbolHighestSellPrice[sIndex]-(((symbolAsk[sIndex]-symbolBid[sIndex])*gridReverseMovement)) && sell)) && buy)
      {
       double highestLot = symbolSellPositions[sIndex] == 0 ? 0 : gridReverseLotDeviser > 0 ? symbolSellVolume[sIndex]/(symbolSellPositions[sIndex]+1)/gridReverseLotDeviser : 0;
       double volume = IsNetting() ? symbolLotMin[sIndex] : highestLot < symbolInitialLots[sIndex] ? symbolInitialLots[sIndex] : highestLot;
       double sl = stopLoss > 0 ? symbolAsk[sIndex]-(symbolAsk[sIndex]/100*stopLoss) : 0;
 
-      if((HandleIndicator(sIndex, ORDER_TYPE_BUY) && rsiEnabeled)
-         || !rsiEnabeled)
+      if((HandleIndicator(sIndex, ORDER_TYPE_BUY) && rsiEnabeled && (symbolBuyPositions[sIndex] == 0))
+         || rsiEnabeled == false)
         {
          Buy(sIndex,volume,sl);
         }
      }
 
-   if((symbolSellPositions[sIndex] == 0) && (symbolBuyPositions[sIndex] == 0 || (symbolBid[sIndex] > symbolLowestBuyPrice[sIndex]+(((symbolAsk[sIndex]-symbolBid[sIndex])/100*gridStepMovement)*((gridStepMultiplier*gridReverseStepMultiplier))) && buy)) && sell && !IsNetting())
+   if((symbolSellPositions[sIndex] == 0) && (symbolBuyPositions[sIndex] == 0 || (symbolBid[sIndex] > symbolLowestBuyPrice[sIndex]+(((symbolAsk[sIndex]-symbolBid[sIndex])*gridReverseMovement)) && buy)) && sell)
      {
       double highestLot = symbolBuyPositions[sIndex] == 0 ? 0 : gridReverseLotDeviser > 0 ? symbolBuyVolume[sIndex]/(symbolBuyPositions[sIndex]+1)/gridReverseLotDeviser : 0;
       double volume = IsNetting() ? symbolLotMin[sIndex] : highestLot < symbolInitialLots[sIndex] ? symbolInitialLots[sIndex] : highestLot;
       double sl = stopLoss > 0 ? symbolBid[sIndex]+(symbolBid[sIndex]/100*stopLoss) : 0;
 
-      if((HandleIndicator(sIndex, ORDER_TYPE_SELL) && rsiEnabeled)
-         || !rsiEnabeled)
+      if((HandleIndicator(sIndex, ORDER_TYPE_SELL) && rsiEnabeled && (symbolSellPositions[sIndex] == 0))
+         || rsiEnabeled == false)
         {
          Sell(sIndex,volume,sl);
         }
@@ -1163,12 +1162,6 @@ void Mint()
    UpdateBalance();
    HandleSymbols();
    CloseOpenPositions();
-
-   if(IsNetting() && !tradedfistnetting)
-     {
-      Buy(0,symbolLotMin[0],0);
-      tradedfistnetting = true;
-     }
   }
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
