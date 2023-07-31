@@ -40,7 +40,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, Christopher Benjamin Hemmens"
 #property link      "chrishemmens@hotmail.com"
-#property version   "5.1"
+#property version   "5.2"
 
 #include <checkhistory.mqh>
 #include <Trade/Trade.mqh>
@@ -89,6 +89,7 @@ input string   currencyPairs              = "EURUSD"; // Symbols to trade comma 
 
 input group    "Expert Advisor settings";
 input bool     showComment                = true;     // Show table, disable for faster testing
+input bool     highResFix                 = false;    // Fix for high resolution (4k displays)
 input int      magicNumber                = 901239;   // Magic number
 
 CTrade trade;
@@ -101,10 +102,11 @@ CChartObjectLabel*      tableCells[];
 
 string   EMPTY_STRING            = " ------ ";
 
-int      rowHeight               = 48;
-int      width                   = 2200;
+int      rowHeight               = 24;
+int      width                   = 1100;
 int      padding                 = 5;
 int      colSize                 = 72;
+int      fontSize                = 9;
 int      col[72];
 int      symbolCol               = 0;
 int      positionsBuyCol         = 7;
@@ -219,6 +221,16 @@ void initSymbols()
 //+------------------------------------------------------------------+
 void initTable()
   {
+
+
+   if(highResFix)
+     {
+      width = width*2;
+      rowHeight = rowHeight*2;
+      fontSize = 18;
+     }
+
+
    for(int i = 0; i < colSize; i++)
      {
       col[i] = width/colSize*i;
@@ -231,7 +243,7 @@ void initTable()
    title.Create(0,"titlebackground00",0,width-(colSize*3),padding+1);
    title.FontSize(9);
    title.Color(clrForestGreen);
-   title.SetString(OBJPROP_TEXT, "MintyGrid v5.1");
+   title.SetString(OBJPROP_TEXT, "MintyGrid v5.2");
 
 
    CreateTableCell(-1,  0,                " Profit ");
@@ -408,7 +420,7 @@ int CreateTableCell(int rowNum, int colNum)
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
-int CreateTableCell(int rowNum, int colNum, string text, color clr = clrDarkSlateGray, int fontSize = 9)
+int CreateTableCell(int rowNum, int colNum, string text, color clr = clrDarkSlateGray)
   {
    ArrayResize(tableCells, ArraySize(tableCells)+1);
    int cellIndex = ArraySize(tableCells)-1;
@@ -1154,9 +1166,9 @@ bool IsMarketOpen()
       return(true);
    return(false);
   }
-  
+
 bool nettingOrderPlaced = false;
-  
+
 //+------------------------------------------------------------------+
 //|                                                                  |
 //+------------------------------------------------------------------+
@@ -1165,11 +1177,12 @@ void Mint()
    UpdateBalance();
    HandleSymbols();
    CloseOpenPositions();
-   
-   if(IsNetting() && nettingOrderPlaced == false) {
+
+   if(IsNetting() && nettingOrderPlaced == false)
+     {
       Buy(0,symbolLotMin[0],symbolAsk[0]-(symbolAsk[0]/100*1));
       nettingOrderPlaced = true;
-   }
+     }
   }
 //+------------------------------------------------------------------+
 //| Expert initialization function                                   |
