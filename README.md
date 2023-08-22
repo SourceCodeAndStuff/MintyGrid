@@ -1,7 +1,7 @@
 # Always backtest before using.
 
 ## MintyGrid
-MintyGrid is a simple EA that does not use indicators nor market averages to trade. MintyGrid always buys and/or sells. On winning trades MintyGrid will take profit based on configuration. On losing trades MintyGrid uses a grid strategy to place resistance points using a martingale/reverse-martingale strategy to be prepared for when the market swings in the opposite direction. MintyGrid can be configured to run on many currency pairs simultaneously and will work as long as the pairs are similar in price. MintyGrid does not try predict market movements in any way or form. MintyGrid always trades within its grid configuration. MintyGrid depends on market movements to function and does not depend on time factors other than betting that the price will change. The quicker market prices change the quicker MintyGrid will place trades depending on configuration.
+MintyGrid is a simple EA that has an RSI indicator. On winning trades MintyGrid will take profit based on configuration. On losing trades MintyGrid uses a grid strategy to place resistance points using a martingale/reverse-martingale strategy to be prepared for when the market swings in the opposite direction. MintyGrid can be configured to run on many currency pairs simultaneously and will work as long as the pairs are similar in price. MintyGrid always trades within its grid configuration.
 
 Recommended usage is on a cent account with at least 100 EUR (10000 Euro Cents) and high leverage. Or 10000 EUR on a standard account if you want to take a big risk. It is not recommended to run MintyGrid alongside other EAs. If you wish to run it is advised to run MintyGrid on its own trading account with no more than 10% of your assets, use only assets you are prepared to possibly lose. MintyGrid is aggressive and effective but risky. In MintyGrid you can configure stop losses however they sometimes have a bad effect, your entire account balance is at risk. MintyGrid does not work well on netting accounts. MintyGrid works best on forex brokers with a 0.01 lot size and lot step. Backtesting is a must, you should try find settings that satisfy your need between risk and reward. Note it is possible to find really risky settings that give huge rewards, but keep in mind a slight tweak in the settings can also cause catastrophic failure. There is a very fine line between good settings, and settings that will lose everything. Settings must be well balanced together to produce an effective and good result. It is recommended to optimize the strategy yourself using the strategy tester. It is recommended to withdraw any profits from MintyGrid regularly and have a good exit strategy as MintyGrid is prone to failing on massive market swings. It is possible to find settings that run for long periods of time, generally they tend to be less profitable.
 
@@ -26,24 +26,3 @@ Donations welcome I like money.
 
 Bank transfer
 https://bunq.me/CHemmens
-
-AdvCash
-chrishemmens@hotmail.com
-
-Crypto
-BNB (BEP20)
-0x3d3d1c009d5e77c06533ec7868e46594cc9f89f6
-
-BTC (Bitcoin Network)
-17nKSnhXcyxPVkCmB1E427TTTfpmuzD4Bw
-
-XLM (Stellar Nework)
-GABFQIK63R2NETJM7T673EAMZN4RJLLGP3OFUEJU5SZVTGWUKULZJNL6
-Memo: 235030310
-
-XRP (Ripple Network)
-rEb8TK3gBgk5auZkwc6sHnwrGVJH8DuaLh
-Tag: 107838061
-
-ETH (ERC20)
-0x3d3d1c009d5e77c06533ec7868e46594cc9f89f6
