@@ -40,7 +40,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, Christopher Benjamin Hemmens"
 #property link      "chrishemmens@hotmail.com"
-#property version   "6.0"
+#property version   "6.1"
 
 #include <checkhistory.mqh>
 #include <Trade/Trade.mqh>
@@ -69,7 +69,7 @@ input double   gridStepMovement           = 3;         // Step price movement pe
 input double   gridStepMultiplier         = 3;         // Step price movement multiplier (0 to disable)
 input double   gridReverseMovement        = 3;         // Reverse price movement multiplier (0 to disable)
 input double   gridStepProfitMultiplier   = 3;         // Step profit multiplier (0 to disable)
-input double   gridStepLotMultiplier      = 3;         // Step martingale lot multiplier (0 to disable)
+input double   gridStepLotMultiplier      = 2;         // Step martingale lot multiplier (0 to disable)
 input double   gridStelLotMultiplierLoss  = 3;         // How many losses before increasing lot
 
 
@@ -245,7 +245,7 @@ void initTable()
    CreateTableRow(0, clrForestGreen, 2);
    CreateTableRow(totalSymbols+2, clrForestGreen);
 
-   CreateTableCell(-1,  66,                " MintyGrid v6.0");
+   CreateTableCell(-1,  66,                " MintyGrid v6.1");
 
    CreateTableCell(-1,  56,                " Profit ");
    CreateTableCell(-1,  profitColNum);
