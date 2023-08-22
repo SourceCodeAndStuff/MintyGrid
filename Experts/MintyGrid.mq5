@@ -40,7 +40,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Copyright 2021, Christopher Benjamin Hemmens"
 #property link      "chrishemmens@hotmail.com"
-#property version   "5.2"
+#property version   "6.0"
 
 #include <checkhistory.mqh>
 #include <Trade/Trade.mqh>
