@@ -59,7 +59,7 @@ input double   stopLoss                   = 0.00;      // Percentage of price to
 input group    " Profit settings";
 input RiskType profitType                 = Dynamic;   // Whether to use fixed or dynamic profit
 input RiskBase profitBase                 = Balance;   // Factor to base profit on when using dynamic profit
-input double   profitFactor               = 1.00;      // Fixed profit in deposit currency or dynamic profit factor
+input double   profitFactor               = 50.00;     // Fixed profit in deposit currency or dynamic profit factor
 
 input group    " Martingale grid settings";
 input int      gridStepMax                = 10;        // Maximum amount of grid steps per direction
@@ -959,7 +959,7 @@ void HandleSymbols()
 void Buy(int sIndex, double volume, double sl = 0.0)
   {
    volume = NormalizeVolume(volume, sIndex);
-   if(CheckMoneyForTrade(symbols[sIndex],volume,ORDER_TYPE_BUY) && CheckVolumeValue(symbols[sIndex],volume) && IsMarketOpen())
+   if(CheckMoneyForTrade(symbols[sIndex],volume,ORDER_TYPE_BUY) && CheckVolumeValue(symbols[sIndex],volume) && CheckVolumeLimit(sIndex,volume,ORDER_TYPE_BUY) && IsMarketOpen())
      {
       if(trade.Buy(volume, symbols[sIndex], 0, sl, 0, "MintyGrid Buy " + symbols[sIndex] + " step " + IntegerToString(symbolBuyPositions[sIndex] + 1)))
         {
@@ -973,7 +973,7 @@ void Buy(int sIndex, double volume, double sl = 0.0)
 void Sell(int sIndex, double volume, double sl = 0.0)
   {
    volume = NormalizeVolume(volume, sIndex);
-   if(CheckMoneyForTrade(symbols[sIndex],volume,ORDER_TYPE_SELL) && CheckVolumeValue(symbols[sIndex],volume) && IsMarketOpen())
+   if(CheckMoneyForTrade(symbols[sIndex],volume,ORDER_TYPE_SELL) && CheckVolumeValue(symbols[sIndex],volume) && CheckVolumeLimit(sIndex,volume,ORDER_TYPE_SELL) && IsMarketOpen())
      {
       if(trade.Sell(volume, symbols[sIndex], 0, sl, 0, "MintyGrid Sell " + symbols[sIndex] + " step " + IntegerToString(symbolSellPositions[sIndex] + 1)))
         {
@@ -1101,8 +1101,21 @@ bool CheckVolumeValue(string symbol, double volume)
    return true;
 
   }
-
-bool tradedfistnetting = false;
+//+------------------------------------------------------------------+
+//|                                                                  |
+//+------------------------------------------------------------------+
+bool CheckVolumeLimit(int sIndex, double volume, ENUM_ORDER_TYPE type)
+  {
+   if(type == ORDER_TYPE_BUY)
+     {
+      return symbolBuyVolume[sIndex] + volume <= SymbolInfoDouble(symbols[sIndex],SYMBOL_VOLUME_LIMIT);
+     }
+   if(type == ORDER_TYPE_SELL)
+     {
+      return symbolSellVolume[sIndex] + volume <= SymbolInfoDouble(symbols[sIndex],SYMBOL_VOLUME_LIMIT);
+     }
+   return false;
+  }
 
 //+------------------------------------------------------------------+
 //|                                                                  |
